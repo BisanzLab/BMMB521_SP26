@@ -129,34 +129,28 @@ setwd("~/Desktop/BMMB521_tutorial") #Note: windows users would use setwd("C:\Use
 
 
 
+### Feature Abundances
+
+In this case we will be using data which has already been processed. We will download a table of genus-summarized microbial abundances where each column is a sample, and each row is a genus. The values represent the number of reads (counts) assigned to each genus on a per-sample basis.
+
+Let us download it as below:
+
+```{r, eval=F}
+download.file("https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Genus_Abundances.tsv","data/Genus_Abundances.tsv")
+```
+
+
 ### Metadata
 
-Before we even have the data, it is important to know how to pair samples to experimental data.
-
-Now that we have the reads, we need to know which samples they belong to! This is called metadata, and a spreadsheet (in tab separated format) is available to download as below. Note that you could just as easily use excel spread sheets; however, there are some special considerations for reading/writing excel files and they love to auto-convert text to dates which can cause issues.
+Having the data is great, but unless we know what it is, it is pretty useless. This is called metadata, and a spreadsheet (in tab separated format) is available to download as below. Note that you could just as easily use excel spreadsheets; however, there are some special considerations for reading/writing excel files and they love to auto-convert text to dates which can cause issues.
 
 ```{r, eval=F}
-download.file("https://github.com/jbisanz/BMS270_SP2021/raw/main/metadata.tsv","metadata.tsv")
-```
-
-We can now take a quick look at the metadata after reading it in:
-
-```{r}
-#read_tsv("metadata.tsv")
-```
-
-### Taxonomy Database
-
-Finally, we will download a database for taxonomic assignment (if we believe such a thing is valuable). We will be using the RDP database; however, we will discuss alternate (and perhaps better) choices during the tutorial.
-
-```{r, eval=F}
-#download.file("https://zenodo.org/record/4310151/files/rdp_species_assignment_18.fa.gz", "rdp_species_assignment_18.fa.gz")
-#download.file("https://zenodo.org/record/4310151/files/rdp_train_set_18.fa.gz", "rdp_train_set_18.fa.gz")
+download.file("https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Metadata.tsv","data/Metadata.tsv")
 ```
 
 ***
 
-After all of this, you should find a folder on your desktop called `BMS270_tutorial`. Within this folder, you should find a sub folder called reads containing 48 fastq files, your metadata.tsv file, and the two formatted rdp fa.gz files. With these and the packages installed, you are ready to begin!
+After all of this, you should find a folder on your desktop called `BMS270_tutorial`. Within this folder, you should find a sub folder called data containing two files: your Metadata.tsv file, and the Genus_Abundances.tsv file. With these and the packages installed, you are ready to begin!
 
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
