@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE, cache = FALSE, message=F, warning=F)
 
 # Background
 
-The goal of this session is to give you a quick intro into how to explore 'omics data. We will be building off down-sampled data collected as part of [Tian et al. Cell Host & Microbe 2025](https://www.cell.com/cell-host-microbe/fulltext/S1931-3128(25)00055-1). In short, this data is derived from microbiome sequencing data of healthy indviduals and those who are colonized with <i>C. difficile</i>.
+The goal of this session is to give you a quick intro into how to explore and visualize 'omics data. We will be building off down-sampled data collected as part of [Tian et al. Cell Host & Microbe 2025](https://www.cell.com/cell-host-microbe/fulltext/S1931-3128(25)00055-1). In short, this data is derived from microbiome sequencing data of healthy indviduals and those who are colonized with <i>C. difficile</i>.
 
 ![](resources/graphical_abstract.jpg)
 
@@ -127,8 +127,6 @@ Then we can specifically set our working directory to be inside this older as be
 setwd("~/Desktop/BMMB521_tutorial") #Note: windows users would use setwd("C:\Users\YourUserName\Desktop\BMMB521_tutorial")
 ```
 
-
-
 ### Feature Abundances
 
 In this case we will be using data which has already been processed. We will download a table of genus-summarized microbial abundances where each column is a sample, and each row is a genus. The values represent the number of reads (counts) assigned to each genus on a per-sample basis.
@@ -136,9 +134,9 @@ In this case we will be using data which has already been processed. We will dow
 Let us download it as below:
 
 ```{r, eval=F}
+dir.create("data")
 download.file("https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Genus_Abundances.tsv","data/Genus_Abundances.tsv")
 ```
-
 
 ### Metadata
 
@@ -150,7 +148,7 @@ download.file("https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/dat
 
 ***
 
-After all of this, you should find a folder on your desktop called `BMS270_tutorial`. Within this folder, you should find a sub folder called data containing two files: your Metadata.tsv file, and the Genus_Abundances.tsv file. With these and the packages installed, you are ready to begin!
+After all of this, you should find a folder on your desktop called `BMMB521_tutorial`. Within this folder, you should find a sub folder called data containing two files: your Metadata.tsv file, and the Genus_Abundances.tsv file. With these and the packages installed, you are ready to begin!
 
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
@@ -167,21 +165,20 @@ knitr::knit_exit()
 
 # Setting up your environment
 
-Much like you might set up your bench before starting an experiment, or do your mise en place before cooking a meal, it pays to take some time to set up your digital work space before starting an analysis. You should always keep a record of all the tools and commands you used to perform your analysis. This is essential to reproducibility! At a minimum, you can create a new R script (File > New File > R markdown). R markdown documents combine raw code, with free-text sections and function like an electronic note book for your analysis. This is great to document your analysi and can be shared later with collaborators/reviewers/etc... guess what this document is? Visit [here](https://github.com/BisanzLab/BMMB521_SP24/blob/main/index.Rmd) to see the markdown document for this class!
+Much like you might set up your bench before starting an experiment, or do your mise en place before cooking a meal, it pays to take some time to set up your digital work space before starting an analysis. You should always keep a record of all the tools and commands you used to perform your analysis. This is essential to reproducibility! At a minimum, you can create a new R script (File > New File > R markdown). R markdown documents combine raw code, with free-text sections and function like an electronic note book for your analysis. This is great to document your analysis and can be shared later with collaborators/reviewers/etc... guess what this document is? Visit [here](https://github.com/BisanzLab/BMMB521_SP26/blob/main/index.Rmd) to see the markdown document for this class!
 
 As a first pass we can load our libraries that we will need as below:
 
 ```{r message=F, warning=F}
 library(tidyverse)
-library(dada2)
-library(phyloseq)
+library(readxl) #part of the tidyverse for reading excel files
 library(ape)
 library(vegan)
 library(qiime2R)
-library(lme4)
+library(caret)
 ```
 
-Next we can make sure we have set our working directory. This ensures we will be able to properly find our files. This was set up before class and is likely on your desktop called `~/Desktop/BMS270_tutorial`. We can explicitly set our working directory with the `setwd()` function.
+Next we can make sure we have set our working directory. This ensures we will be able to properly find our files. This was set up before class and is likely on your desktop called `~/Desktop/BMMB521_tutorial`. We can explicitly set our working directory with the `setwd()` function.
 
 ```{r eval=F}
 setwd("~/Desktop/BMMB521_tutorial")
@@ -191,7 +188,6 @@ Next we might want to set up some directories for our outputs as below:
 
 ```{r}
 dir.create("figures")
-dir.create("backups")
 ```
 
 Finally, it is always helpful to keep a record of your work environment. This can easily be accomplished with `SessionInfo()` as below. Having a list of all of the packages you used and the versions can be very helpful later when writing a manuscript!
@@ -203,184 +199,27 @@ sessionInfo()
 Before going forward, we will read in our metadata table with the help of the `read_tsv()` function. At any point you can click on your data in the top right corner of R studio and it will open in a tab for you to look at!
 
 ```{r}
-metadata<-read_tsv("metadata.tsv")
+metadata<-read_tsv("data/metadata.tsv")
+```
+
+You could visualize your table to inspect it using either of the methods below:
+
+```{r}
+View(metadata)
+interactive_table(metadata)
 ```
 
 We can then explore it as below:
 
 ```{r}
-metadata %>% count(Group, Time_days)
+metadata %>% count(StudyID, Cdifficile)
 ```
 
-You can see that we have 2 groups (pre- and post-diet), 4 time points (1, 7, 14, and 21 days), and that there are 3 mice per time point.  The last two columns are storing the location of the sequencing data).
-
-While we are at it, we are going to define an explicit order to the groups which will be reflected in all future graphs/analyses. We will place pre-diet before post-diet:
-
-```{r}
-metadata <- metadata %>% mutate(Group=factor(Group, c("pre-diet","post-diet")))
-```
-
-# Processing Raw Data
-
-The most standard format for sequencing data is called a FastQ. It is composed of a repeating pattern of 4 lines as below:
-
-```
-@M01869:152:000000000-AMWM8:1:1101:21609:1687 1:N:0:0
-TACGTAGGGGGCAAGCGTTATCCGGATTTACTGGGTGTAAAGGGAGCGTAGACGGCATGGCCG...
-+
-BBCCCGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGC,-...
-```
-
-The first line contains a unique identifier for each read starting with an `@` sign. This data which comes from an Illumina MiSeq shows the machine's serial number (M01869), the flow cell ID (AMWM8; unique to the sequencing run), and the read's physical location (1:1101:21609:1687) on the flow cell. The next line stores the actual DNA sequence for the read which is followed by a `+` sign. The last line of the pattern stores quality information wherein the probability of an incorrect base call is represented by a letter (which in turn represents a number as seen [here](https://drive5.com/usearch/manual/quality_score.html)).
 
 
-## Data Quality
-
-Given that it is hard to quite hard to read the quality Profile by eye, we can instead plot it using the `plotQualityProfile()` function. Here we are going to grab the first 3 samples `[1:3]` from each of the columns and add a title to the plot `ggtitle()`.
-
-```{r}
-plotQualityProfile(metadata$Read1[1:3]) + ggtitle("Forward Read Quality (R1)")
-plotQualityProfile(metadata$Read2[1:3]) + ggtitle("Reverse Read Quality (R2)")
-```
-
-As you can see these reads are VERY high quality over their entire length. See [here](https://user-images.githubusercontent.com/66436023/106751777-f67cd300-6629-11eb-8413-00f6e5b59e8f.png) for an example of bad reads that would require some more heavy handed QC.
-
-## Quality Filtering
-
-Nonetheless, we should still do some QC which entails trimming back the ends of the reads and removing those which are suspected to be highly error prone.
-
-```{r}
-dir.create("filtered_reads")
-
-metadata<-
-  metadata %>%
-  mutate(Read1_filtered=paste0("filtered_", Read1)) %>%
-  mutate(Read2_filtered=paste0("filtered_", Read2))
-  
-
-trimlog <- filterAndTrim(
-                      fwd=metadata$Read1,
-                      rev=metadata$Read2,
-                      filt=metadata$Read1_filtered,
-                      filt.rev=metadata$Read2_filtered,
-                      compress=TRUE, # use gzip compression to save space
-                      truncLen=c(240,140), # trim back the reads on the 3' end
-                      trimLeft=5, # remove 5 bases from the beginning as these q scores may not be reliable
-                      maxEE=2, # no more than 2 expected errors per reads
-                      truncQ=2, # trim the read after a q score of 2
-                      multithread=TRUE, # use multiple processors, you may need to set this to FALSE on PCs
-                      rm.phix=TRUE, # Remove reads mapping to phiX
-                      verbose=TRUE
-                   )
-```
-
-**QUESTION: What is phiX and why might we remove it?**
 
 
-Now we can check how many reads have been removed:
 
-```{r}
-trimlog %>%
-  as.data.frame() %>%
-  mutate(Percent_Passed=reads.out/reads.in*100) %>%
-  interactive_table()
-```
-
-## Denoising Data
-
-Amplicon sequencing tends to be very noisy. To deal with this, operational taxonomic units (OTUs) have been heavily used for analysis. In this type of analysis, sequences are clustered based on a % identity threshold, often 97%. This has the advantage of negating sequencing errors but causes a lack of resolution. 97% is generally based on the notion that the 16S rRNA of two members of the same species is >=97%; however, this is based on the whole 16S rRNA gene, and not a small fragment as we are commonly analyzing so this logic is not entirely sound.
-
-As a more modern approach, denoising is commonly used to identify sequencing errors and correct them. As for how it works, a simple explanation is that errors are relatively rare and as such can be identified when the error is substitution from a more abundant sequence. For a more complete explanation and alternate approaches see the manuscripts describing Dada2, or any of the other popular denoising algorithms available:
-
-* dada2 [https://www.nature.com/articles/nmeth.3869](https://www.nature.com/articles/nmeth.3869)
-* deblur [https://msystems.asm.org/content/2/2/e00191-16](https://msystems.asm.org/content/2/2/e00191-16)
-* unoise [https://www.biorxiv.org/content/10.1101/081257v1](https://www.biorxiv.org/content/10.1101/081257v1)
-* Comparison of all three [https://peerj.com/articles/5364/](https://peerj.com/articles/5364/)
-
-
-The first step is to learn the error profile for the sequencing run. This is the longest part of the analysis and is based on a sampling of the data. 
-
-```{r}
-forward_error<-learnErrors(metadata$Read1_filtered, multithread = TRUE)
-reverse_error<-learnErrors(metadata$Read2_filtered, multithread = TRUE)
-```
-
-Next we can actually correct the data:
-
-```{r}
-forward_denoised<- dada(metadata$Read1_filtered, err=forward_error, multithread=TRUE)
-reverse_denoised<- dada(metadata$Read2_filtered, err=reverse_error, multithread=TRUE)
-```
-
-## Overlap Reads
-
-Up until this point, we have been treating our forward and reverse reads separately. We can now merge them together to represent the complete V4 sequence using `merge pairs`.
-
-```{r}
-merged_reads <- mergePairs(
-                          dadaF=forward_denoised, 
-                          derepF=metadata$Read1_filtered, 
-                          dadaR=reverse_denoised, 
-                          derepR=metadata$Read2_filtered, 
-                          verbose=TRUE
-                          )
-```
-
-## Build the Feature Table
-
-Now we can get can get the output we really want: a table with each sample and the number of times each sequence is observed.
-
-```{r}
-merged_table <- makeSequenceTable(merged_reads)
-```
-
-## Remove Chimeras
-
-When dealing with amplicon data, it is incredibly important to remove chimeric reads. These sequences are generated through a number of mechanisms but result in a read that is derived from multiple original pieces of template DNA. Certain protocols for generating 16S rRNA amplicons, including the methods used to generate this data, are highly prone to chimera formation. For more information on how to prevent their formation, see the manuscript by [Gohl et al. 2016](https://www.nature.com/articles/nbt.3601). For a discussion of chimeras, see [here](http://drive5.com/usearch/manual/chimera_formation.html). 
-
-```{r}
-asv_table<-removeBimeraDenovo(merged_table, method="pooled", multithread=TRUE, verbose=TRUE)
-```
-
-**Question: How many ASVs did we remove? Do they represent a lot of our data?**
-
-```{r, echo=F, eval=F}
-sum(asv_table)/sum(merged_table)*100
-```
-
-## Clean up
-
-Frustratingly, some people like to have samples as rows and features (ASVs) as columns, others like the reverse. Different tools have different expectations and you must always be aware which orientation is expected. I, unlike the authors of Dada2, prefer samples as columns. The good news is that we can easily transpose the table back and forth using the `t()` function.
-
-```{r}
-asv_table<-t(asv_table)
-```
-
-If you look at the sample names in your table, it is the currently the name of the fastq file rather than the sample ID, we can switch them out as below.
-
-```{r}
-asv_table<-asv_table[,basename(metadata$Read1_filtered)] #put columns in the same order as the metadata
-colnames(asv_table)<-metadata$SampleID #overwrite the column names
-```
-
-You can also see in our table that the ASVs are being stored as their literal sequence. We can swap this out with something a little bit more readable as below while storing a copy of the sequences:
-
-```{r}
-sequences<-tibble(ASV=paste0("ASV_",1:nrow(asv_table)), Sequence=rownames(asv_table))
-rownames(asv_table)<-sequences$ASV
-```
-
-We can save an image of our session just in the event of a problem so that we can go back and reload our computed data:
-
-```{r echo=F}
-save.image("backups/processing.Rdata")
-```
-
-Finally, to free up some memory, we can remove all the intermediate data.
-
-```{r eval=F}
-rm(forward_denoised, forward_error, merged_reads, merged_table, reverse_denoised, reverse_error, trimlog)
-```
 
 ***
 

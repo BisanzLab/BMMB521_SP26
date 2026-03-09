@@ -1542,8 +1542,8 @@ border-radius: 0px;
 <div id="background" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Background</h1>
 <p>The goal of this session is to give you a quick intro into how to
-explore ’omics data. We will be building off down-sampled data collected
-as part of <a href="https://www.cell.com/cell-host-microbe/fulltext/S1931-3128(25)00055-1">Tian
+explore and visualize ’omics data. We will be building off down-sampled
+data collected as part of <a href="https://www.cell.com/cell-host-microbe/fulltext/S1931-3128(25)00055-1">Tian
 et al. Cell Host &amp; Microbe 2025</a>. In short, this data is derived
 from microbiome sequencing data of healthy indviduals and those who are
 colonized with <i>C. difficile</i>.</p>
@@ -1650,7 +1650,8 @@ each column is a sample, and each row is a genus. The values represent
 the number of reads (counts) assigned to each genus on a per-sample
 basis.</p>
 <p>Let us download it as below:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">download.file</span>(<span class="st">&quot;https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Genus_Abundances.tsv&quot;</span>,<span class="st">&quot;data/Genus_Abundances.tsv&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">dir.create</span>(<span class="st">&quot;data&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">download.file</span>(<span class="st">&quot;https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Genus_Abundances.tsv&quot;</span>,<span class="st">&quot;data/Genus_Abundances.tsv&quot;</span>)</span></code></pre></div>
 </div>
 <div id="metadata" class="section level3" number="2.3.2">
 <h3><span class="header-section-number">2.3.2</span> Metadata</h3>
@@ -1663,7 +1664,7 @@ auto-convert text to dates which can cause issues.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">download.file</span>(<span class="st">&quot;https://github.com/BisanzLab/BMMB521_SP26/raw/refs/heads/main/data/Metadata.tsv&quot;</span>,<span class="st">&quot;data/Metadata.tsv&quot;</span>)</span></code></pre></div>
 <hr />
 <p>After all of this, you should find a folder on your desktop called
-<code>BMS270_tutorial</code>. Within this folder, you should find a sub
+<code>BMMB521_tutorial</code>. Within this folder, you should find a sub
 folder called data containing two files: your Metadata.tsv file, and the
 Genus_Abundances.tsv file. With these and the packages installed, you
 are ready to begin!</p>
