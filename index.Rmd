@@ -114,6 +114,17 @@ write_tsv(metadata, "~/sandbox/BMMB521_data/Metadata.tsv")
 
 ###############
 file.copy("/Volumes/Bisanz_Home/jpb6325/sandbox/BMMB521_data/", ".", recursive=TRUE)
+
+##############
+#Generate student problem 1 - EOSC
+#got data from the EOSC github repo
+metadata<-read_excel("~/bisanzlab/github/BMMB521_SP26/assigned_data/EsophagealCancer/EOSC_metadata_2026Feb11.xlsx") %>% filter(SampleType=="Saliva") %>% dplyr::select(SampleID, Group, Age_Years=Age, Sex_MF=Sex, AlcoholConsumption_YN=`Alcohol Drink`) %>% mutate(Group=if_else(Group=="Diseased", "Cancer","Control"))
+write_tsv(metadata, "~/bisanzlab/github/BMMB521_SP26/assigned_data/EsophagealCancer/metadata.tsv")
+
+
+features<-summarize_taxa(readRDS("~/bisanzlab/github/BMMB521_SP26/assigned_data/EsophagealCancer/asv_table.RDS")[,metadata$SampleID], readRDS("~/bisanzlab/github/BMMB521_SP26/assigned_data/EsophagealCancer/asv_taxonomy.RDS") %>% column_to_rownames("ASV"))$Genus %>% filter_features(3,3)
+write_tsv(features %>% rownames_to_column("FeatureID"), "~/bisanzlab/github/BMMB521_SP26/assigned_data/EsophagealCancer/genus_abundances.tsv")
+
 ```
 
 
@@ -261,6 +272,49 @@ pdist$vectors %>%
 
 
 
+nzv <- nearZeroVar(t(features), saveMetrics = TRUE) # identify low variance features
+features_nzv <- features[!nzv$nzv,] %>% t()
+
+
+features_df <- features_nzv %>%
+  as.data.frame() %>%
+  rownames_to_column("SampleID")
+
+data <- metadata[,c("SampleID","Cdifficile")] %>%
+  select(SampleID, Cdifficile) %>%
+  left_join(features_df, by = "SampleID")
+
+data$Cdifficile <- factor(data$Cdifficile)
+levels(data$Cdifficile) <- c("Negative", "Positive")
+
+ctrl <- trainControl(
+  method = "cv",
+  number = 10,
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary,
+  savePredictions = "final"
+)
+
+set.seed(123)
+
+rf_model <- train(
+  Cdifficile ~ . - SampleID,
+  data = data,
+  method = "rf",
+  metric = "ROC",
+  trControl = ctrl,
+  importance = TRUE
+)
+
+rf_model
+
+rf_model$results
+
+varImp(rf_model)
+
+#load proc
+roc_obj <- roc(rf_model$pred$obs, rf_model$pred$Positive)
+plot(roc_obj, print.auc=TRUE)
 ```
 
 
