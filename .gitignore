@@ -1,0 +1,19 @@
+ macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Microsoft Office temporary files
+~$*.doc
+~$*.docx
+~$*.xls
+~$*.xlsx
+~$*.ppt
+~$*.pptx
+~$*
+
+# Generic temp files
+*.tmp
+*.temp
+*~
